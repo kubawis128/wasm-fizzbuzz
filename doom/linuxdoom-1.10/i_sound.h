@@ -63,6 +63,8 @@ int I_GetSfxLumpNum (sfxinfo_t* sfxinfo );
 int
 I_StartSound
 ( int		id,
+  void*     data,
+  int       data_size,
   int		vol,
   int		sep,
   int		pitch,
@@ -105,7 +107,8 @@ int I_RegisterSong(void *data);
 // Horrible thing to do, considering.
 void
 I_PlaySong
-( int		handle,
+( void*		handle,
+  int       size,
   int		looping );
 // Stops a song over 3 seconds.
 void I_StopSong(int handle);

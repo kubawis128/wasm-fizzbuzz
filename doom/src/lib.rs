@@ -7,6 +7,7 @@ mod malloc;
 mod printf;
 mod unimplemented_libc;
 mod video;
+mod audio;
 
 #[macro_export]
 macro_rules! log {

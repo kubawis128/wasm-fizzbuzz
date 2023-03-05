@@ -33,8 +33,6 @@ rcsid[] = "$Id: i_unix.c,v 1.5 1997/02/03 22:45:10 b1 Exp $";
 char*  sndserver_filename = "./sndserver ";
 #endif
 
-
-
 void I_SetChannels(){}
 
 void I_SetSfxVolume(int volume){}
@@ -43,10 +41,16 @@ void I_SetMusicVolume(int volume){}
 
 int I_GetSfxLumpNum(sfxinfo_t* sfx)
 {
-  return 0;
+  if (sfx->link != NULL)
+  {
+    sfx = sfx->link;
+  }
+
+  return sfx->lumpnum;
 }
 
-int
+/* moved this into rust
+int 
 I_StartSound
 ( int		id,
   int		vol,
@@ -56,6 +60,7 @@ I_StartSound
 {
   return 0;
 }
+*/
 
 void I_StopSound (int handle){}
 
@@ -85,7 +90,11 @@ void I_InitSound(){}
 
 void I_InitMusic(void)		{ }
 void I_ShutdownMusic(void)	{ }
-void I_PlaySong(int handle, int looping){}
+
+/* moved to rust
+void I_PlaySong(int handle, int looping){
+
+}*/
 
 void I_PauseSong (int handle){}
 

@@ -76,6 +76,60 @@ function drawCanvas(ptr) {
     ++number_of_draws;
 }
 
+function playMusic(ptr, length, looping){
+    console.log(looping)
+    var doom_screen = new Uint8ClampedArray(memory.buffer, ptr, length)
+    let midi = mus2midi(doom_screen)
+    if(looping == 0){
+        MIDIjs.play(URL.createObjectURL(new Blob([midi])));
+    }else{
+        playAutoReset(URL.createObjectURL(new Blob([midi])))
+    }
+    //MIDIjs.play("/D_E1M1.mid");
+}
+
+function playAutoReset(url)
+{
+    // get_duration requires a callback as it returns nothing.
+    MIDIjs.get_duration(url, function (duration)
+    { 
+        console.info(`Duration: ${duration}`);
+        // Start the initial play
+        MIDIjs.play(url);
+        
+        // This lets us keep track of current play time in seconds
+        MIDIjs.player_callback = function (mes)
+        {
+            if (mes.time / duration >= 1)
+            {
+                console.info('End reached');
+                // This plays the audio again
+                MIDIjs.play(url);
+            }
+        };
+    });
+}
+
+function playSound(ptr, size,vol, sep, pitch){
+    console.log("pointer ",ptr)
+    console.log("size ",size)
+    console.log("vol",vol,"sep", sep,"pitch", pitch)
+    var doom_screen = new Uint8ClampedArray(memory.buffer, ptr, size)
+    initAudio(doom_screen,vol,pitch);
+
+    //MIDIjs.play("/D_E1M1.mid");
+}
+
+function arrayBufferToBase64( buffer ) {
+    var binary = '';
+    var bytes = new Uint8Array( buffer );
+    var len = bytes.byteLength;
+    for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode( bytes[ i ] );
+    }
+    return window.btoa( binary );
+}
+
 /*These functions will be available in WebAssembly. We also share the memory to share larger amounts of data with javascript, e.g. strings of the video output.*/
 var importObject = {
     js: {
@@ -84,19 +138,17 @@ var importObject = {
         js_stderr: appendOutput("stderr"),
         js_milliseconds_since_start: getMilliseconds,
         js_draw_screen: drawCanvas,
+        js_play_sound: playSound,
+        js_play_music: playMusic,
     },
     env: {
         memory: memory
     }
 };
-
 WebAssembly.instantiateStreaming(fetch('doom.wasm'), importObject)
     .then(obj => {
-
     /*Initialize Doom*/
     obj.instance.exports.main();
-
-
     /*input handling*/
     let doomKeyCode = function(keyCode) {
         // Doom seems to use mostly the same keycodes, except for the following (maybe I'm missing a few.)
@@ -127,7 +179,6 @@ WebAssembly.instantiateStreaming(fetch('doom.wasm'), importObject)
     };
     let keyDown = function(keyCode) {obj.instance.exports.add_browser_event(0 /*KeyDown*/, keyCode);};
     let keyUp = function(keyCode) {obj.instance.exports.add_browser_event(1 /*KeyUp*/, keyCode);};
-
     /*keyboard input*/
     canvas.addEventListener('keydown', function(event) {
         keyDown(doomKeyCode(event.keyCode));
@@ -137,16 +188,15 @@ WebAssembly.instantiateStreaming(fetch('doom.wasm'), importObject)
         keyUp(doomKeyCode(event.keyCode));
         event.preventDefault();
     }, false);
-
     /*mobile touch input*/
     [["enterButton", 13],
-     ["leftButton", 0xac],
-     ["rightButton", 0xae],
-     ["upButton", 0xad],
-     ["downButton", 0xaf],
-     ["ctrlButton", 0x80+0x1d],
-     ["spaceButton", 32],
-     ["altButton", 0x80+0x38]].forEach(([elementID, keyCode]) => {
+    ["leftButton", 0xac],
+    ["rightButton", 0xae],
+    ["upButton", 0xad],
+    ["downButton", 0xaf],
+    ["ctrlButton", 0x80+0x1d],
+    ["spaceButton", 32],
+    ["altButton", 0x80+0x38]].forEach(([elementID, keyCode]) => {
         console.log(elementID + " for " + keyCode);
         var button = document.getElementById(elementID);
         //button.addEventListener("click", () => {keyDown(keyCode); keyUp(keyCode)} );
@@ -154,7 +204,6 @@ WebAssembly.instantiateStreaming(fetch('doom.wasm'), importObject)
         button.addEventListener("touchend", () => keyUp(keyCode));
         button.addEventListener("touchcancel", () => keyUp(keyCode));
     });
-
     /*hint that the canvas should have focus to capute keyboard events*/
     const focushint = document.getElementById("focushint");
     const printFocusInHint = function(e) {
@@ -162,15 +211,12 @@ WebAssembly.instantiateStreaming(fetch('doom.wasm'), importObject)
         focushint.style.fontWeight = "normal";
     };
     canvas.addEventListener('focusin', printFocusInHint, false);
-
     canvas.addEventListener('focusout', function(e) {
         focushint.innerText = "Click on the canvas to capute input and start playing.";
         focushint.style.fontWeight = "bold";
     }, false);
-
     canvas.focus();
     printFocusInHint();
-
     /*printing stats*/
     const animationfps_stats = document.getElementById("animationfps_stats");
     var number_of_animation_frames = 0; // in current second
@@ -178,7 +224,6 @@ WebAssembly.instantiateStreaming(fetch('doom.wasm'), importObject)
         animationfps_stats.innerText = number_of_animation_frames;
         number_of_animation_frames = 0;
     }, 1000);
-
     /*Main game loop*/
     function step(timestamp) {
         ++number_of_animation_frames;

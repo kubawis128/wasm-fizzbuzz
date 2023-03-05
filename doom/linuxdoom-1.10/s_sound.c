@@ -361,8 +361,12 @@ S_StartSoundAtVolume
   //
   
   // get lumpnum if necessary
-  if (sfx->lumpnum < 0)
-    sfx->lumpnum = I_GetSfxLumpNum(sfx);
+  char		namebuf[9];
+
+  sprintf(namebuf, "ds%s", sfx->name);
+  sfx->lumpnum = W_GetNumForName(namebuf);
+
+  //fprintf( stderr, "Got Lump number: %i\n",sfx->lumpnum);
 
 #ifndef SNDSRV
   // cache data if necessary
@@ -372,10 +376,10 @@ S_StartSoundAtVolume
 	     "S_StartSoundAtVolume: 16bit and not pre-cached - wtf?\n");
 
     // DOS remains, 8bit handling
-    //sfx->data = (void *) W_CacheLumpNum(sfx->lumpnum, PU_MUSIC);
-    // fprintf( stderr,
-    //	     "S_StartSoundAtVolume: loading %d (lump %d) : 0x%x\n",
-    //       sfx_id, sfx->lumpnum, (int)sfx->data );
+    sfx->data = (void *) W_CacheLumpNum(sfx->lumpnum, PU_MUSIC);
+     fprintf( stdout,
+    	     "S_StartSoundAtVolume: loading %d (lump %d) : 0x%x\n",
+           sfx_id, sfx->lumpnum, (int)sfx->data );
     
   }
 #endif
@@ -386,12 +390,15 @@ S_StartSoundAtVolume
   
   // Assigns the handle to one of the channels in the
   //  mix/output buffer.
-  channels[cnum].handle = I_StartSound(sfx_id,
-				       /*sfx->data,*/
-				       volume,
-				       sep,
-				       pitch,
-				       priority);
+
+  sounds[sfx->lumpnum] = sfx->data;
+  I_StartSound(sfx->lumpnum,
+			sfx->data,
+            W_LumpLength(sfx->lumpnum),
+			volume,
+			sep,
+			pitch,
+			priority);
 }	
 
 void
@@ -677,10 +684,12 @@ S_ChangeMusic
 
     // load & register it
     music->data = (void *) W_CacheLumpNum(music->lumpnum, PU_MUSIC);
-    music->handle = I_RegisterSong(music->data);
+    //music->handle = I_RegisterSong(music->data,W_LumpLength(music->lumpnum));
 
     // play it
-    I_PlaySong(music->handle, looping);
+    //printf("Song name: %s length: %i", music->name,W_LumpLength(music->lumpnum));
+    sounds[0] = music->data;
+    I_PlaySong(music->data,W_LumpLength(music->lumpnum), looping);
 
     mus_playing = music;
 }

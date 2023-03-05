@@ -51,6 +51,7 @@ S_Init
 void S_Start(void);
 
 
+extern	void*		sounds[3000];
 //
 // Start sound for thing at <origin>
 //  using <sound_id> from sounds.h
